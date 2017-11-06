@@ -6,6 +6,7 @@
  @author Alex Giokas
  @version 0.1.0
 
+
                              \
                               \
                                \\
@@ -37,8 +38,10 @@
 #include <algorithm>
 #include <iostream>
 #include <fstream>
-
+///
 /// a pattern is a sentence tokenized
+/// we default it to a vector of strings
+///
 using pattern = std::vector<std::string>;
 using size_type = pattern::size_type;
 

@@ -91,17 +91,20 @@ SCENARIO("VSM similarity test", "[vsm_similarity]")
         WHEN("querying `hello`") {
             pattern query = {"Hello"};
             auto sim = vsm.similar(query);
-            // TODO
+            //REQUIRE(min_max_sim<std::string>(sim, query) == 0.5f);
+            REQUIRE(sim == p_a);
         } 
         WHEN("querying `hello beautiful girl`") {
             pattern query = {"Hello", "beautiful", "girl"};
             auto sim = vsm.similar(query);
-            // TODO
+            //REQUIRE(min_max_sim<std::string>(sim, query) == 0.666667f);
+            REQUIRE(sim == p_c);
         }
         WHEN("querying `hello cruel man`") {
             pattern query = {"Hello", "cruel", "man"};
             auto sim = vsm.similar(query);
-            // TODO
+            //REQUIRE(min_max_sim<std::string>(sim, query) == 0.666667f);
+            REQUIRE(sim == p_b);
         }
     }
 }
