@@ -232,7 +232,7 @@ template <class token_type,
 pattern_type vector_space<token_type,
                           pattern_type>::similar(pattern_type arg) const
 {
-    std::vector<std::vector<std::string>> max_vec;
+    std::vector<pattern_type> max_vec;
     Eigen::VectorXf veh = vectorize(arg);
 	auto den = matrix.norm() * veh.norm();
 	auto res = (matrix * veh) / den;
@@ -243,15 +243,11 @@ pattern_type vector_space<token_type,
         }
     }
     if (!max_vec.empty()) {
-        auto min = max_vec.at(0).size();
-        int min_i = 0;
-        for (auto i = 0; i < max_vec.size(); i++) {
-            if (max_vec[i].size() < min) {
-                min = max_vec.at(i).size();
-                min_i = i;
-            }
-        }
-        return max_vec[min_i];
+        auto min = *std::min_element(max_vec.begin(), max_vec.end(), 
+                [](const pattern_type& a, const pattern_type& b) {
+                    return a.size() < b.size();
+        });
+        return min;
     }
     std::vector<std::string> empty{};
     return empty;
