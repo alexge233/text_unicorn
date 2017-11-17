@@ -2,6 +2,15 @@
 #include "vector_space.hpp"
 #include "catch.hpp"
 
+using pattern   = std::vector<std::string>;
+using size_type = pattern::size_type;
+
+// TODO:
+//      - TEST similar_min
+//      - TEST similar_max
+//      - TEST similar_any
+//      - TEST similar_all
+
 // test we have correct insertion
 SCENARIO("VSM basic stuff", "[vsm_basics]")
 {
@@ -83,26 +92,26 @@ SCENARIO("VSM similarity test", "[vsm_similarity]")
 
         WHEN("querying `hello world`") {
             pattern query = {"Hello", "world"};
-            auto sim = vsm.similar(query);
+            auto sim = vsm.similar_min(query);
             THEN("vectors must match") {
                 REQUIRE(sim == query);
             }
         }
         WHEN("querying `hello`") {
             pattern query = {"Hello"};
-            auto sim = vsm.similar(query);
+            auto sim = vsm.similar_min(query);
             //REQUIRE(min_max_sim<std::string>(sim, query) == 0.5f);
             REQUIRE(sim == p_a);
         } 
         WHEN("querying `hello beautiful girl`") {
             pattern query = {"Hello", "beautiful", "girl"};
-            auto sim = vsm.similar(query);
+            auto sim = vsm.similar_min(query);
             //REQUIRE(min_max_sim<std::string>(sim, query) == 0.666667f);
             REQUIRE(sim == p_c);
         }
         WHEN("querying `hello cruel man`") {
             pattern query = {"Hello", "cruel", "man"};
-            auto sim = vsm.similar(query);
+            auto sim = vsm.similar_min(query);
             //REQUIRE(min_max_sim<std::string>(sim, query) == 0.666667f);
             REQUIRE(sim == p_b);
         }
