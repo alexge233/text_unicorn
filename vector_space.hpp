@@ -5,34 +5,10 @@
  @date November 3rd 2017
  @author Alex Giokas
  @version 0.1.0
-
-
-                             \
-                              \
-                               \\
-                                \\
-                                 >\/7
-                             _.-(6'  \
-                            (=___._/` \
-                                 )  \ |
-                                /   / |
-                               /    > /
-                              j    < _\
-                          _.-' :      ``.
-                          \ r=._\        `.
-                         <`\\_  \         .`-.
-                          \ r-7  `-. ._  ' .  `\
-                           \`,      `-.`7  7)   )
-                            \/         \|  \'  / `-._
-                                       ||    .'
-                                        \\  (
-                                         >\  >
-                                     ,.-' >.'
-                                    <.'_.''
-                                      <'
  */
 #include <Eigen/Eigen>
 #include <Eigen/Sparse>
+#include <type_traits>
 #include <vector>
 #include <deque>
 #include <map>
@@ -42,6 +18,17 @@
 #include <algorithm>
 #include <iostream>
 #include <fstream>
+
+// TODO: implement the `vsm_dot` operators
+// TODO: create and impl a `matrix_base` structure
+//       and expose: `add_binary(pattern)`
+//                   `add_weighted(pattern)`
+//
+//       in addition to wrapping around the base matrix type
+//       e.g., `Eigen::MatrixXf` or `Eigen::SparseMatrix<float>`
+//       this wrapper should specialise around the wrapping type
+//       e.g., a different `add_binary` for Sparse, and different for Dense
+
 ///
 /// a pattern is a sentence tokenized
 /// we default it to a vector of strings
@@ -55,6 +42,72 @@ template <class token_type,
           class pattern_type = std::vector<token_type>>
 float min_max_sim(const pattern_type & lhs,
                   const pattern_type & rhs);
+
+/// @return index of @param item inside @param container
+template <class item_type,
+          class list_type>
+int has_index(item_type item,
+              list_type && container);
+
+/// @brief vectorize a pattern aligned to a matrix's column index
+template <class vector_type  = Eigen::VectorXf,
+          class num_type     = float>
+struct vectorize
+{
+    template <class container_type,
+              class pattern_type  = std::vector<std::string>>
+    vector_type operator()(container_type && column_index,
+                           pattern_type   && pattern);
+};
+
+// TODO: specialise vectorize for <Eigen::VectorXf,float>
+//       and                      <Eigen::SparseVector<num_type>,num_type>
+
+/**
+ *  @brief the dot product VSM operation
+ *
+ *  The actual dot product / denominator
+ *      `M * V / ||M|| * ||V||` 
+ *  where `M` is the matrix
+ *  and `I` is the input vector 
+ */
+template <class matrix_type,
+          class num_type = float,
+          class = typename std::enable_if_t<
+                        std::is_floating_point<num_type>::value>
+          >
+struct vsm_dot
+{
+    template <class vector_type>
+    vector_type operator()(matrix_type && mat,
+                           vector_type input);   
+};
+
+// @brief specialisation for dense matrix
+template <class num_type>
+struct vsm_dot<Eigen::MatrixXf,num_type>
+{
+    // enable only if vector_type is dense eigen
+    Eigen::VectorXf operator()(Eigen::MatrixXf && mat,
+                               Eigen::VectorXf input);
+    // enable only if vector_type is a sparse eigen
+    Eigen::SparseVector<num_type> operator()(Eigen::MatrixXf && mat,
+                                             Eigen::SparseVector<num_type> input);
+};
+
+template <typename num_type>
+struct vsm_dot<Eigen::SparseMatrix<num_type>,num_type>
+{
+    // enable only if vector_type is a sparse eigen - no need for dense or others
+    template <class vector_type,
+              typename = std::enable_if_t<
+                                std::is_same<vector_type,
+                                             Eigen::SparseVector<num_type>>
+              ::value>>
+    vector_type operator()(Eigen::SparseMatrix<num_type> && mat,
+                           vector_type input);   
+};
+
 /**
  * @class vector_space
  * @brief a vector space model matrix
@@ -69,6 +122,9 @@ template <class token_type   = std::string,
           class pattern_type = std::vector<token_type>,
           class matrix_type  = matrix_dense>
 class vector_space
+// TODO: inherit from vsm_dot operator()() accordingly
+// TODO: inherit from matrix_base          accordingly
+// TODO: inherit from vectorize
 {
 public:
     using size_type  = typename pattern_type::size_type;
@@ -104,13 +160,13 @@ public:
     /// @return is empty when both columns are zero
     bool is_empty() const;
 
-    /// @return index of @param item inside @param container
+    /// TODO - DEPRECATE
     template <class item_type,
               class list_type>
     int has_index(item_type item,
                   list_type & container) const;
 
-    /// @return the vectorized representation of pattern_type
+    // - TODO DEPRECATE
     template <class vector_type = Eigen::VectorXf>
     vector_type vectorize(pattern_type arg) const;
 
@@ -118,6 +174,7 @@ public:
 	// void clear();
 
 protected:
+
     // TODO: @brief setup the weights matrix from the boolean matrix
     void set_weights_matrix();
 
@@ -210,11 +267,10 @@ void vector_space<token_type,
     }
 }
 
+// TODO: partial specialisation for dense / sparse matrix
 template <class token_type,
           class pattern_type,
           class matrix_type>
-          // TODO: partial specialisation for dense / sparse matrix
-          //       is needed
 void vector_space<token_type,
                   pattern_type,
                   matrix_type
@@ -356,7 +412,7 @@ std::set<pattern_type>
 template <class token_type,
           class pattern_type,
           class matrix_type>
-std::deque<vector_space::score_type> 
+std::deque<std::pair<pattern_type,float>> 
             vector_space<token_type,
                          pattern_type,
                          matrix_type
@@ -371,8 +427,7 @@ std::deque<vector_space::score_type>
 template <class token_type,
           class pattern_type,
           class matrix_type>
-template <class vector_type>    // TODO verify this works for sparse vectors
-                                //      else we need specialisation methods
+template <class vector_type>
 vector_type vector_space<token_type,
                          pattern_type,
                          matrix_type
@@ -389,11 +444,11 @@ vector_type vector_space<token_type,
     return veh;
 }
 
+// TODO: move this into the `vsm_dot` operators and specialise for each template type
 template <class token_type,
           class pattern_type,
           class matrix_type>
-template <class vector_type>    // TODO verify this works for sparse vectors
-                                //      else we need specialisation methods
+template <class vector_type>
 vector_type vector_space<token_type,
                          pattern_type,
                          matrix_type
